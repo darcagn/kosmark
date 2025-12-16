@@ -97,24 +97,36 @@ void deferred_strip_frame() {
 
 void gldc_strip_frame() {
     static int oldseed = 0xdeadbeef;
+    static GLfloat verts[MAX_POLYCNT * 3];
+    static GLubyte colors[MAX_POLYCNT * 4];
+    
     int seed = oldseed;
-    int x, y;
-    float z;
+    int x = 512, y = 256;
     int col;
-
-    z = getnum(&seed, 128) + 10;
-
-    glShadeModel(GL_FLAT);
-    glBegin(GL_TRIANGLE_STRIP);
+    float z = getnum(&seed, 128) + 10;
 
     for(size_t i = 0; i < polycnt; i++) {
         get_xyc(&seed, &x, &y, &col);
-
-        glColor4ubv((void *)&col);
-        glVertex3f(x, y, z);
+        
+        verts[i * 3 + 0] = x;
+        verts[i * 3 + 1] = y;
+        verts[i * 3 + 2] = z;
+        
+        colors[i * 4 + 0] = (col >> 16) & 0xFF;
+        colors[i * 4 + 1] = (col >> 8) & 0xFF;
+        colors[i * 4 + 2] = col & 0xFF;
+        colors[i * 4 + 3] = 0xFF;
     }
 
-    glEnd();
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    
+    glVertexPointer(3, GL_FLOAT, 0, verts);
+    glColorPointer(GL_BGRA, GL_UNSIGNED_BYTE, 0, colors);    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, polycnt);
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
 
     glKosSwapBuffers();
     oldseed = seed;
